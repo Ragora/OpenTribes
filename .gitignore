@@ -1,0 +1,11 @@
+# Ignore __pycache__ everywhere
+__pycache__
+__pycache__/
+
+# Ignore build
+build
+build/
+
+# Ignore dist
+dist
+dist/
