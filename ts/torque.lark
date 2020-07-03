@@ -1,0 +1,103 @@
+// Entry point
+?start: globalcodeblock*
+
+////////////////////////////////////////////////////////////////////////////////
+// TERMINALS
+////////////////////////////////////////////////////////////////////////////////
+GLOBALPREFIX: "$"
+LOCALPREFIX: "%"
+NAMESPACE: "::"
+TERMINATOR: ";"
+SUBREF: "."
+STRING: /\".*\"/
+TAGGEDSTRING: /\'.*\'/
+COMMENT: /\/\/[^\n]*/
+NAMEDREF: /[A-z]+/
+
+LOGICALOPS: ("&&"|"||")
+BITWISEOPS: ("^"|"&"|"|")
+
+ARITHMETICOPS: ("+"|"-"|"*"|"/"|"%")
+RELATIONALOPS: (">"|"<"|"=="|">="|"<="|"!=")
+CUMULATIVEOPS: ("*="|"/="|"+="|"-=")
+
+////////////////////////////////////////////////////////////////////////////////
+// General purpose rules
+////////////////////////////////////////////////////////////////////////////////
+namespaces: [namespacelist]
+namespacelist: NAME (NAMESPACE NAME)*
+
+subrefs: [subreflist]
+subreflist: NAME (SUBREF NAME)*
+
+globalref: GLOBALPREFIX namespacelist subreflist
+localref: LOCALPREFIX subreflist
+
+////////////////////////////////////////////////////////////////////////////////
+// Function Declaration Rules
+////////////////////////////////////////////////////////////////////////////////
+declarationparams: [declarationparamlist]
+declarationparamlist: declarationparam ("," declarationparam)*
+declarationparam: LOCALPREFIX NAME
+
+functiondeclaration: "function" namespaces "(" declarationparams ")" "{" codeblock* "}" // Function body may be empty
+
+////////////////////////////////////////////////////////////////////////////////
+// Assignment Rules
+////////////////////////////////////////////////////////////////////////////////
+globalassignment: globalref assignment ";"
+localassignment: localref assignment ";"
+
+// Assignment Op
+assignment: "=" expression
+
+////////////////////////////////////////////////////////////////////////////////
+// Expressions.
+////////////////////////////////////////////////////////////////////////////////
+expression: (arithmetic | relational | logical | bitwise)
+
+arithmetic: (NUMBER | call | localref | globalref) (ARITHMETICOPS (NUMBER | call))?
+relational: (NUMBER | call | localref | globalref) (RELATIONALOPS (NUMBER | call))?
+logical: (NUMBER | call | localref | globalref) (LOGICALOPS (NUMBER | call))?
+bitwise: (NUMBER | call | localref | globalref) (BITWISEOPS (NUMBER | call))?
+
+cumulativeexpression: (localref | globalref) (CUMULATIVEOPS (NUMBER | call))
+
+////////////////////////////////////////////////////////////////////////////////
+// Code Block Rules
+// These rules represent blocks of code that may be executed - this would
+// be code found between opening and closing curly brackets.
+////////////////////////////////////////////////////////////////////////////////
+globalcodeblock: if | functiondeclaration | globalassignment | COMMENT | forloop | call TERMINATOR
+codeblock: globalcodeblock | localassignment
+
+////////////////////////////////////////////////////////////////////////////////
+// Calls. Calls in Torque Script may take two forms:
+// MyFunction();
+// Namespace::Function();
+// It may also be changed: GetMyObject().doThing();
+// A function may be free-floating or attached to a specific namespace.
+////////////////////////////////////////////////////////////////////////////////
+
+call: namespaces "(" callparameters ")"
+
+callparameters: [callparamlist]
+callparamlist: callparam ("," callparam)*
+callparam: NAMEDREF | localref | globalref | NUMBER | call | TAGGEDSTRING | STRING
+
+////////////////////////////////////////////////////////////////////////////////
+// For loops. For loops in Torque Script take the following form:
+// for (%local = 0; %local < 50; %local++)
+// {
+// }
+// There's probably other variants the language supports.
+////////////////////////////////////////////////////////////////////////////////
+if: "if" "(" expression ")" "{"? "DSFDSF"
+forloop: "for" "(" localassignment expression ";" cumulativeexpression ")" "{" codeblock* "}" // Body may be empty
+
+////////////////////////////////////////////////////////////////////////////////
+// Import common utilities and ignore whitespace in the input.
+////////////////////////////////////////////////////////////////////////////////
+%import common.CNAME -> NAME
+%import common.NUMBER
+%ignore /[ \t\n\f\r]+/

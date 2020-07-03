@@ -1,1 +1,2 @@
 panda3d
+lark-parser==0.9.0
