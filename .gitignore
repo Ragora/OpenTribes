@@ -10,13 +10,6 @@ build/
 dist
 dist/
 
-# Ignore bazel outputs
-bazel-bin
-bazel-bin/
-bazel-out
-bazel-out/
-bazel-t2Eng
-bazel-t2Eng/
-bazel-testlogs
-bazel-testlogs/
-
+# Ignore egg info
+*.egg-info
+*.egg-info/
