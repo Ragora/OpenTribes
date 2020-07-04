@@ -1,11 +1,9 @@
-from lark import Lark
+import lark
 
-parser = Lark.open("t2ml.lark")
+parser = lark.Lark.open("t2ml.lark")
 
 with open("draakan.txt", "r") as handle:
     test_load = handle.read()
 
-#print(test_load)
-
 tree = parser.parse(test_load)
-print(tree)
+print(tree.pretty())

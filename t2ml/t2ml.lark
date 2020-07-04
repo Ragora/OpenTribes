@@ -1,15 +1,29 @@
 // Entry point
 ?start: element
-?element: tag | tagend | string
+?element: (tag | string)*
 
 ////////////////////////////////////////////////////////////////////////////////
 // TERMINALS
 ////////////////////////////////////////////////////////////////////////////////
-NAMESPACE: ":"
-TERMINATOR: "/"
+
 WHITESPACE: /[ \t\n\f\r]+/
-STRING: ESCAPED_STRING // FIXME: Match free-form strings without requiring double quotes around them.
-AMBIGUOUSNUMBER: /[\da-f]+/i // In T2ML, whether or not the number is hex or decimal is contextual
+
+// A string can't contain tags - can they be escaped, though?
+STRING: /[^<>]+/ //
+
+//! A string used for command designations which are like a normal string except :
+COMMANDSTRING: /[^<>\/:]+/
+
+// Symbol used to open the tag
+TAG: "<"
+
+// Symbol to denote the end of the tag's affect
+CLOSETAG: "<" "/"
+
+// Differentiate components of a command like font:univers:50
+COMMANDCOMPONENT: COMMANDSTRING
+COMMANDCOMPONENTS: COMMANDCOMPONENT (":" COMMANDCOMPONENT)*
+
 NAMESPACEITEM: ("_"|LETTER|"-") ("_"|LETTER|"-")*
 NAMESPACENAME: NAMESPACEITEM (WHITESPACE NAMESPACEITEM)*
 
@@ -17,15 +31,12 @@ NAMESPACENAME: NAMESPACEITEM (WHITESPACE NAMESPACEITEM)*
 // Rules
 ////////////////////////////////////////////////////////////////////////////////
 
-// Recurse until we're done processing elements
-tag: "<" namespaces ">" element*
-tagend: "<" "/" namespaces ">" element*
-string: (STRING | WHITESPACE) element*
+commandcomponents: COMMANDCOMPONENT (":" COMMANDCOMPONENT)*
 
-// Unlike HTML or XML, T2ML tags can look like: <font:univers condensed:25>
-namespacecomponent: (NAMESPACENAME | AMBIGUOUSNUMBER)
-namespaces: [namespacelist]
-namespacelist: namespacecomponent (NAMESPACE namespacecomponent)*
+tag: TAG commandcomponents ">" element* (CLOSETAG commandcomponents ">")?
+
+// Recurse until we're done processing elements
+string: STRING
 
 ////////////////////////////////////////////////////////////////////////////////
 // Import common utilities.
@@ -34,4 +45,3 @@ namespacelist: namespacecomponent (NAMESPACE namespacecomponent)*
 %import common.LETTER
 %import common.NUMBER
 %import common.CNAME -> NAME
-%import common.ESCAPED_STRING

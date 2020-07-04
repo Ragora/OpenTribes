@@ -1,24 +1,24 @@
-<spush><center><color:00dc00><font:univers condensed:25>"Race: Draakan"<spop>
+<spush><just:center><color:00dc00><font:univers condensed:25>Race: Draakan<spop>
 <spush><font:Univers:15>
-"What is the point of our existance?"
-"  -- Dolosus, after finding the truth"
+What is the point of our existance?
+  -- Dolosus, after finding the truth
 <spop>
 
 <just:center><bitmap:draakan_full><sbreak>
 
-"The Draakans have the same origin as the Bioderms: Once a genetic experiment, early Draakans escaped from their testing facilities on Xeron. They were originially very basic lifeforms, but after many years of evolving and evading the "<a:select-Races-Criollos>"Criollos"</a>", the Draakans became the sophisticated creatures they are today. The "<a:select-Races-Criollos>"Criollos"</a>" eventually left the Draakans alone after their most recent evolution; happy with how advanced their creations have become. Today, the "<a:select-Races-Criollos>"Criollos"</a>" are mindful to not let the Draakans know they created them."
+The Draakans have the same origin as the Bioderms: Once a genetic experiment, early Draakans escaped from their testing facilities on Xeron. They were originially very basic lifeforms, but after many years of evolving and evading the <a:select-Races-Criollos>Criollos</a>, the Draakans became the sophisticated creatures they are today. The <a:select-Races-Criollos>Criollos</a> eventually left the Draakans alone after their most recent evolution; happy with how advanced their creations have become. Today, the <a:select-Races-Criollos>Criollos</a> are mindful to not let the Draakans know they created them.
 
-"The Draakans (or for short, \"Drakes\") are considered to be direct descendants of velociraptors. They resemble raptors in almost every way possible, except eye color. Most Draakans have yellow eyes that are described as \"bright as the sun\". However, in rare cases, a Draakan may be born with red eyes."
+The Draakans (or for short, "Drakes") are considered to be direct descendants of velociraptors. They resemble raptors in almost every way possible, except eye color. Most Draakans have yellow eyes that are described as "bright as the sun". However, in rare cases, a Draakan may be born with red eyes.
 
-"Draakans have an extraordinary ability to spew & resist fire. Said fire is produced in 'sacs' just below the lungs. The fire produced was meant to be an emergency backup for body heat. However, a simple surgery allows this fire to be diverted to the mouth, ready to be expelled at will."
+Draakans have an extraordinary ability to spew & resist fire. Said fire is produced in 'sacs' just below the lungs. The fire produced was meant to be an emergency backup for body heat. However, a simple surgery allows this fire to be diverted to the mouth, ready to be expelled at will.
 
-"There is a largely spread rumor that the Drakaans are of <a:select-Races-Criollos>Creole</a> creation. Once a genetic experiment, early Draakans escaped from their testing facility on Xeron and then on evolved into the sophisticated creatures that they are now."
+There is a largely spread rumor that the Drakaans are of <a:select-Races-Criollos>Creole</a> creation. Once a genetic experiment, early Draakans escaped from their testing facility on Xeron and then on evolved into the sophisticated creatures that they are now.
 
-"Pros:"
- "*Faster running speed"
- "*Flame breath ability"
- "*Advanced understanding of robotic technology (faster leveling on robotics)"
- "*Fire & lava resistance"
+Pros:
+ *Faster running speed
+ *Flame breath ability
+ *Advanced understanding of robotic technology (faster leveling on robotics)
+ *Fire & lava resistance
 
-"Cons:"
- "*Takes less damage before death"
+Cons:
+ *Takes less damage before death
