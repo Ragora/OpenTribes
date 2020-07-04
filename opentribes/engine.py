@@ -146,6 +146,10 @@ class Engine(ShowBase):
 
         vfs = panda3d.core.VirtualFileSystem.getGlobalPtr()
 
+        # Mount the directory first
+        if vfs.mount(panda3d.core.Filename(absolute_mod_path), ".", panda3d.core.VirtualFileSystem.MFReadOnly) is False:
+            logger.critical("Failed to mount mod directory at absolute path: %s", absolute_mod_path)
+
         # Load in a known order every time to avoid problems caused by the operating system returning the list in different orders
         logger.info("Scanning VL2s ...")
         for candidate in sorted(os.listdir(absolute_mod_path)):
