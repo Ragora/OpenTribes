@@ -5,6 +5,12 @@
 When either running main.py directly or a built executable, it will expect a ```--gamedata``` parameter if the executable currently does not reside
 in the GameData directory of a working Tribes 2 installation.
 
+## Testing
+
+```bash
+python3 setup.py test
+```
+
 ## Building
 
 ```bash

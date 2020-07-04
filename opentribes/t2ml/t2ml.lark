@@ -39,9 +39,10 @@ tag: TAG commandcomponents ">" element* (CLOSETAG commandcomponents ">")?
 string: STRING
 
 ////////////////////////////////////////////////////////////////////////////////
-// Import common utilities.
+// From lark's common.lark; imports do not seem to work correctly when
+// packaged.
 ////////////////////////////////////////////////////////////////////////////////
 
-%import common.LETTER
-%import common.NUMBER
-%import common.CNAME -> NAME
+LCASE_LETTER: "a".."z"
+UCASE_LETTER: "A".."Z"
+LETTER: UCASE_LETTER | LCASE_LETTER
