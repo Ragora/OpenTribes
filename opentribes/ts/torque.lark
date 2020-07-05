@@ -1,5 +1,5 @@
 // Entry point
-?start: globalcontext
+?start: globalcontext*
 
 ////////////////////////////////////////////////////////////////////////////////
 // Terminals.
@@ -26,6 +26,9 @@ PREFIX: "~" | "!"
 // POSTFIX ops
 POSTFIX: "++" | "--"
 
+// Cumulative ops
+CUMULATIVE: "+=" | "-="
+
 PARENTHESESEXPLICIT: "("
 
 // Keywords that should be differentiated
@@ -41,6 +44,8 @@ WHILELOOP: "while"
 DEFAULTCASE: "default"
 NEWOBJECT: "new"
 FIELDASSIGNMENT: NAME
+ELSE: "else"
+ELSEIF: "else if"
 
 // Exclude dollar sign from the terminal intentionally
 GLOBALREF: NAME ("::" NAME)*
@@ -60,15 +65,15 @@ FUNCTIONDECLARATION: NAME ("::" NAME)*
 // Rules.
 ////////////////////////////////////////////////////////////////////////////////
 
-globalcontext: (COMMENT | package | globalassignment | localassignment | newobject | functioncall ";" | newobject ";" | switchstring | whileloopbrace | whileloopnobrace | forloopbrace | forloopnobrace | ifbrace | ifnobrace | functiondeclaration)*
-packagecontext: (COMMENT | globalassignment | localassignment | functioncall ";" | switchstring | whileloopbrace | whileloopnobrace | forloopbrace | forloopnobrace | ifbrace | ifnobrace | functiondeclaration)*
+globalcontext: COMMENT | package | globalassignment | localassignment | rvaluepostfix ";" | newobject | functioncall ";" | newobject ";" | switchstring | whileloopbrace | whileloopnobrace | forloopbrace | forloopnobrace | ifbrace | ifnobrace | functiondeclaration
+packagecontext: COMMENT | globalassignment | localassignment | functioncall ";" | switchstring | whileloopbrace | whileloopnobrace | forloopbrace | forloopnobrace | ifbrace | ifnobrace | functiondeclaration
 
 // Like the global context but functions cannot be declared inside ie. for loops, other functions, etc
-codeblock: COMMENT | rvaluepostfix ";" | globalassignment | localassignment | functioncall ";" | newobject ";" | switchstring | whileloopbrace | whileloopnobrace | forloopbrace | forloopnobrace | break | return | ifbrace | ifnobrace
+codeblock: COMMENT | globalassignment | localassignment | rvaluepostfix ";" | functioncall ";" | newobject ";" | switchstring | whileloopbrace | whileloopnobrace | forloopbrace | forloopnobrace | break | return | ifbrace | ifnobrace
 
 // Global & local assignments are allowed anywhere
-globalassignment: "$" GLOBALREF ASSIGNMENT rvalue ";"
-localassignment: "%" LOCALREF ASSIGNMENT rvalue ";"
+globalassignment: globalref ASSIGNMENT rvalue ";"
+localassignment: localref ASSIGNMENT rvalue ";"
 
 // General purpose rule for handling local & globals
 // These may be referenced as arrays in any configuration like: %localArr[%i] = 50;
@@ -90,13 +95,12 @@ functiondeclarationparameters: "%" LOCALREF ("," "%" LOCALREF)*
 functiondeclaration: "function" FUNCTIONDECLARATION "(" functiondeclarationparameters* ")" "{" codeblock* "}"
 
 return: RETURN rvalue* ";"
-ifnobrace: IF "(" rvalue ")" codeblock
-ifbrace: IF "(" rvalue ")" COMMENT? "{" codeblock* "}"
+ifnobrace: IF "(" rvalue ")" codeblock elseif* else?
+ifbrace: IF "(" rvalue ")" COMMENT? "{" codeblock* "}" elseif* else?
 package: PACKAGE NAME COMMENT? "{" packagecontext* "};"
 break: BREAK ";"
 fieldassignment: FIELDASSIGNMENT (ARRAY rvalue ("," ARRAY)* "]")? "=" rvalue ";"
 
-// new SimGroup(MissionGroup) {
 newobject: NEWOBJECT (NAME | ("(" NAME ")")) "(" NAME? ")" "{" (fieldassignment | newobject ";")* "}"
 
 forloopbrace: FORLOOP "(" rvalue ";" rvalue ";" rvalue ")" COMMENT? "{" codeblock* "}"
@@ -107,6 +111,14 @@ switchstring: SWITCHSTRING "(" rvalue ")" COMMENT? "{" switchcases+ "}"
 
 whileloopbrace: WHILELOOP "(" rvalue ")" COMMENT? "{" codeblock* "}"
 whileloopnobrace: WHILELOOP "(" rvalue ")" COMMENT? codeblock
+
+else: elsebrace | elsenobrace
+elsebrace: ELSE COMMENT? "{" codeblock* "}"
+elsenobrace: ELSE COMMENT? codeblock
+
+elseif: elseifbrace | elseifnobrace
+elseifbrace: ELSEIF "(" rvalue ")" COMMENT? "{" codeblock* "}" else?
+elseifnobrace: ELSEIF "(" rvalue ")" COMMENT? codeblock else?
 
 ////////////////////////////////////////////////////////////////////////////////
 // Ignore whitespace.
@@ -125,7 +137,7 @@ DIGIT: "0".."9"
 NAME: ("_"|LETTER) ("_"|LETTER|DIGIT)*
 
 INT: DIGIT+
-NUMBER: FLOAT | INT
+NUMBER: ("+"|"-")? (FLOAT | INT)
 DECIMAL: INT "." INT? | "." INT
 _EXP: ("e"|"E") SIGNED_INT
 FLOAT: INT _EXP | DECIMAL _EXP?
