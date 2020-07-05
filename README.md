@@ -1,5 +1,7 @@
 # OpenTribes
 
+![Python Package](https://github.com/Ragora/OpenTribes/workflows/Python%20package/badge.svg)
+
 OpenTribes is an open source reimplementation of the game engine for [Tribes 2](https://en.wikipedia.org/wiki/Tribes_2) which uses a pre-1.0 version of the [Torque Game Engine](https://en.wikipedia.org/wiki/Torque_(game_engine)).
 
 The scope of the project is to rebuild Tribes 2 to work appropriately on more modern hardware, improve stability and allow for greater customization of the game. Therefore, the intent
