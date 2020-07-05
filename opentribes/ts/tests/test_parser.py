@@ -2,6 +2,7 @@ import os
 import unittest
 import pkg_resources
 
+import lark
 import panda3d.core
 
 # Activate Panda3D's overrides for the Python commands to allow VFS integration when necessary
@@ -32,8 +33,17 @@ class TestParser(unittest.TestCase):
             "Slot1.cs"
         )
 
+        failures = {}
         for test_file in test_files:
             print("Loading test file: %s" % test_file)
             with open(os.path.join("ts/tests", test_file), "r") as handle:
                 payload = handle.read()
-                result = opentribes.ts.parser.low_level_parse(payload)
+
+                try:
+                    result = opentribes.ts.parser.low_level_parse(payload)
+                except lark.exceptions.LarkError as error:
+                    failures[test_file] = error
+
+        for failure_file, failure in failures.items():
+            print("FAILURE in %s: %s" % (failure_file, failure))
+        self.assertEqual(len(failures), 0)
