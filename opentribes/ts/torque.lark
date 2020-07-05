@@ -1,9 +1,9 @@
 // Entry point
 ?start: globalcontext*
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 // Terminals.
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 
 // Normal assigment op
 ASSIGNMENT: "="
@@ -53,23 +53,66 @@ GLOBALREF: NAME ("::" NAME)*
 // Exclude percent sign from the terminal intentionally
 LOCALREF: NAME
 
+NAMEDREF: NAME
+
 FIELDREF: "."
 
 // Torque script (as of T2 anyway) only supports inline comments
 COMMENT: /\/\/.*/
 
 FUNCTIONCALL: NAME ("::" NAME)*
+FUNCTIONFIELDCALL: (FIELDREF NAME)+
 FUNCTIONDECLARATION: NAME ("::" NAME)*
 
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 // Rules.
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 
-globalcontext: COMMENT | package | globalassignment | localassignment | rvaluepostfix ";" | newobject | functioncall ";" | newobject ";" | switchstring | whileloopbrace | whileloopnobrace | forloopbrace | forloopnobrace | ifbrace | ifnobrace | functiondeclaration
-packagecontext: COMMENT | globalassignment | localassignment | functioncall ";" | switchstring | whileloopbrace | whileloopnobrace | forloopbrace | forloopnobrace | ifbrace | ifnobrace | functiondeclaration
+globalcontext: COMMENT
+                    | package
+                    | globalcall ";"
+                    | localcall ";"
+                    | globalassignment
+                    | localassignment
+                    | rvaluepostfixouter
+                    | newobject
+                    | functioncallouter
+                    | newobjectouter
+                    | switchstring
+                    | whileloop
+                    | forloop
+                    | if
+                    | functiondeclaration
+
+packagecontext: COMMENT
+                    | globalassignment
+                    | localassignment
+                    | functioncallouter
+                    | switchstring
+                    | whileloop
+                    | forloop
+                    | if
+                    | functiondeclaration
 
 // Like the global context but functions cannot be declared inside ie. for loops, other functions, etc
-codeblock: COMMENT | globalassignment | localassignment | rvaluepostfix ";" | functioncall ";" | newobject ";" | switchstring | whileloopbrace | whileloopnobrace | forloopbrace | forloopnobrace | break | return | ifbrace | ifnobrace
+codeblock: COMMENT
+                | globalcall ";"
+                | localcall ";"
+                | globalassignment
+                | localassignment
+                | rvaluepostfixouter
+                | functioncallouter
+                | newobjectouter
+                | switchstring
+                | whileloop
+                | forloop
+                | break
+                | return
+                | if
+
+newobjectouter: newobject ";"
+rvaluepostfixouter: rvaluepostfix ";"
+functioncallouter: functioncall ";"
 
 // Global & local assignments are allowed anywhere
 globalassignment: globalref ASSIGNMENT rvalue ";"
@@ -80,11 +123,33 @@ localassignment: localref ASSIGNMENT rvalue ";"
 localref: "%" LOCALREF (ARRAY rvalue ("," ARRAY)* "]")?
 globalref: "$" GLOBALREF (ARRAY rvalue ("," ARRAY)* "]")?
 
+localcall: localref FUNCTIONFIELDCALL "(" callparameters* ")"
+globalcall: globalref FUNCTIONFIELDCALL "(" callparameters* ")"
+
+namedref: NAMEDREF (FIELDREF NAME)*
+
 rvaluepostfix: (localref | globalref) POSTFIX
 rvalueprefix: PREFIX (localref | globalref | functioncall)
 
-rvalueinternal: rvaluepostfix | rvalueprefix | ((NAME | NUMBER | ESCAPED_STRING | TAGGED_STRING | newobject | functioncall | localref | globalref | (rvalue (LOGICAL | ARITHMETIC | COMPARISON | BITWISE | ASSIGNMENT) rvalue)))
+expression: rvalue (LOGICAL | ARITHMETIC | COMPARISON | BITWISE | ASSIGNMENT) rvalue
+
+rvalueinternal: namedref
+                | localcall
+                | globalcall
+                | rvaluepostfix
+                | rvalueprefix
+                | NUMBER
+                | ESCAPED_STRING
+                | TAGGED_STRING
+                | newobject
+                | functioncall
+                | localref
+                | globalref
+                | expression
+
 rvalue: rvalueinternal | (PARENTHESESEXPLICIT rvalueinternal ")")
+
+//
 
 callparameterlist: [rvalue]
 callparameters: rvalue ("," rvalue)*
@@ -95,6 +160,7 @@ functiondeclarationparameters: "%" LOCALREF ("," "%" LOCALREF)*
 functiondeclaration: "function" FUNCTIONDECLARATION "(" functiondeclarationparameters* ")" "{" codeblock* "}"
 
 return: RETURN rvalue* ";"
+if: ifbrace | ifnobrace
 ifnobrace: IF "(" rvalue ")" codeblock elseif* else?
 ifbrace: IF "(" rvalue ")" COMMENT? "{" codeblock* "}" elseif* else?
 package: PACKAGE NAME COMMENT? "{" packagecontext* "};"
@@ -103,32 +169,66 @@ fieldassignment: FIELDASSIGNMENT (ARRAY rvalue ("," ARRAY)* "]")? "=" rvalue ";"
 
 newobject: NEWOBJECT (NAME | ("(" NAME ")")) "(" NAME? ")" "{" (fieldassignment | newobject ";")* "}"
 
+////////////////////////////////////////////////////////////////////////////////
+// For Loops
+// These take the form of:
+// for (startExpression; comparisonExpression; incrementExpression) { }
+// Ie.
+// for (%iteration = 0; %iteration < %object.getCount(); %object++) { }
+////////////////////////////////////////////////////////////////////////////////
+forloop: forloopbrace | forloopnobrace
 forloopbrace: FORLOOP "(" rvalue ";" rvalue ";" rvalue ")" COMMENT? "{" codeblock* "}"
 forloopnobrace: FORLOOP "(" rvalue ";" rvalue ";" rvalue ")" COMMENT? codeblock
 
+////////////////////////////////////////////////////////////////////////////////
+// Switch Case
+// These take the form of:
+// switch$(%value)
+// switch(%value)
+//
+// And body always follows:
+// {
+//    case "stringCase":
+//        ...
+//        break;
+//    default:
+//        ...
+//        break;
+////////////////////////////////////////////////////////////////////////////////
 switchcases: ((SWITCHCASE rvalue) | DEFAULTCASE) ":" COMMENT? codeblock+
 switchstring: SWITCHSTRING "(" rvalue ")" COMMENT? "{" switchcases+ "}"
 
+////////////////////////////////////////////////////////////////////////////////
+// While Loop
+// These take the form of:
+// while (%expression) { }
+////////////////////////////////////////////////////////////////////////////////
+whileloop: whileloopbrace | whileloopnobrace
 whileloopbrace: WHILELOOP "(" rvalue ")" COMMENT? "{" codeblock* "}"
 whileloopnobrace: WHILELOOP "(" rvalue ")" COMMENT? codeblock
 
+////////////////////////////////////////////////////////////////////////////////
+// else
+// These take the form of (only after an if):
+// else { }
+////////////////////////////////////////////////////////////////////////////////
 else: elsebrace | elsenobrace
 elsebrace: ELSE COMMENT? "{" codeblock* "}"
 elsenobrace: ELSE COMMENT? codeblock
 
+////////////////////////////////////////////////////////////////////////////////
+// else if
+// These take the form of (only after an if):
+// else if (%expression) { }
+////////////////////////////////////////////////////////////////////////////////
 elseif: elseifbrace | elseifnobrace
 elseifbrace: ELSEIF "(" rvalue ")" COMMENT? "{" codeblock* "}" else?
 elseifnobrace: ELSEIF "(" rvalue ")" COMMENT? codeblock else?
 
-////////////////////////////////////////////////////////////////////////////////
-// Ignore whitespace.
-////////////////////////////////////////////////////////////////////////////////
-%ignore /[ \t\n\f\r]+/
-
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 // From lark's common.lark; imports do not seem to work correctly when
 // packaged.
-////////////////////////////////////////////////////////////////////////////////
+//==============================================================================
 
 LCASE_LETTER: "a".."z"
 UCASE_LETTER: "A".."Z"
@@ -148,3 +248,6 @@ _STRING_INNER: /.*?/
 _STRING_ESC_INNER: _STRING_INNER /(?<!\\)(\\\\)*?/
 ESCAPED_STRING : "\"" _STRING_ESC_INNER "\""
 TAGGED_STRING : "'" _STRING_ESC_INNER "'"
+
+// Ignore Whitespace
+%ignore /[ \t\n\f\r]+/
