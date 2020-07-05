@@ -4,16 +4,17 @@
 
 import os
 import io
+import binascii
 import typing
+import hashlib
 import logging
 import zipfile
 
 import panda3d.core
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import WindowProperties
-from direct.stdpy.file import *
 
-from . import loaders, t2ml
+from .tsinterpreter import TSInterpreter
 
 class Engine(ShowBase):
     """
@@ -45,6 +46,11 @@ class Engine(ShowBase):
         A list of currently mounted mod names.
     """
 
+    interpreter = None
+    """
+        Reference to the Torque Script interpreter.
+    """
+
     def __init__(self, runtime: str, cache:str, gamedata: str, mods: typing.List[str]):
         """
             Initializes a new engine instance.
@@ -62,6 +68,8 @@ class Engine(ShowBase):
         self.__mods = [os.path.basename(mod) for mod in mods]
         self.__gamedata = os.path.abspath(gamedata)
         self.__runtime = os.path.abspath(runtime)
+
+        self.interpreter = TSInterpreter(engine=self)
 
         if os.path.exists(self.__gamedata) is False:
             raise ValueError("Gamedata path '%s' does not exist." % gamedata)
@@ -89,12 +97,13 @@ class Engine(ShowBase):
             :return: The path to the resulting directory to mount in the VFS.
         """
         logger = logging.getLogger("Engine:ExtractVL2")
-        logger.info("Converting VL2 at absolute path %s for mod %s.", absolute_path, mod)
+        logger.info("Extracting VL2 at absolute path %s for mod %s.", absolute_path, mod)
 
         filename, _ = os.path.splitext(os.path.basename(absolute_path))
 
         output_directory = os.path.join(self.__cache, mod)
         output_vl2_path = os.path.join(output_directory, filename)
+        output_checksum_file = "%s.sum" % output_vl2_path
 
         logger.debug("Output VL2 path: %s", output_vl2_path)
 
@@ -103,6 +112,13 @@ class Engine(ShowBase):
 
         with zipfile.ZipFile(absolute_path) as zip_handle:
             zip_handle.extractall(path=output_vl2_path)
+
+        hash = hashlib.md5()
+        with open(absolute_path, "rb") as handle:
+            hash.update(handle.read())
+
+        with open(output_checksum_file, "w") as handle:
+            handle.write(binascii.hexlify(hash.digest()).decode("utf-8"))
         return output_vl2_path
 
     def resolve_vl2_directory(self, mod: str, absolute_path: str) -> typing.Optional[str]:
@@ -119,9 +135,16 @@ class Engine(ShowBase):
 
         output_directory = os.path.join(self.__cache, mod)
         output_vl2_path = os.path.join(output_directory, filename)
+        output_checksum_file = "%s.sum" % output_vl2_path
 
-        if os.path.exists(output_vl2_path) is True:
-            return output_vl2_path
+        if os.path.exists(output_checksum_file) and os.path.exists(output_vl2_path) is True:
+            hash = hashlib.md5()
+            with open(absolute_path, "rb") as handle:
+                hash.update(handle.read())
+
+            with open(output_checksum_file, "r") as handle:
+                if binascii.hexlify(hash.digest()).decode("utf-8") == handle.read():
+                    return output_vl2_path
         return None
 
     def mount_mod_directory(self, mod: str):
@@ -183,17 +206,21 @@ class Engine(ShowBase):
             Starts the engine and takes control flow for the duration of the application.
         """
         logger = logging.getLogger("Engine:Run")
+
+        vfs = panda3d.core.VirtualFileSystem.getGlobalPtr()
+
+        # Clear any existing VFS mounts - Panda will create one at our working directory but we do not want this.
+        vfs.unmountAll()
+
         logger.info("Initializing engine ...")
         logger.info("Runtime directory: %s", self.__runtime)
         logger.info("Gamedata directory: %s", self.__gamedata)
         logger.info("Cache Directory: %s", self.__cache)
         logger.info("Mods: %s", ", ".join(self.__mods))
-        logger.debug("Loader instance: %s", self.loader)
 
-        # opentribes.t2ml.parser.low_level_parse_file("draakan.txt")
         logger.info("Mounting runtime directory")
 
-        vfs = panda3d.core.VirtualFileSystem.getGlobalPtr()
+        # Mount runtime directory
         vfs.mount(panda3d.core.Filename(self.__runtime), ".", panda3d.core.VirtualFileSystem.MFReadOnly)
 
         for mod in self.__mods:
@@ -203,6 +230,14 @@ class Engine(ShowBase):
         window_properties.setTitle("Tribes 2")
         window_properties.setIconFilename("base/Tribes2.ico")
         self.win.requestProperties(window_properties)
+
+        console_start_path = os.path.abspath(os.path.join(self.__gamedata, "console_start.cs"))
+
+        # console_start.cs is used to bootstrap the engine and is used for ie. the intro cinematics
+        logger.info("Executing console_start.cs in GameData ...")
+        logger.debug("console_start.cs absolute path: %s", console_start_path)
+        if self.interpreter.exec_file(console_start_path, vfs=False) is False:
+            logger.critical("Failed to execute console_start.cs!")
 
         # Finally let Panda3D take over from here
         logger.info("Starting engine!")

@@ -30,7 +30,7 @@ class Application:
             logger.info("Log File: %s", arguments.logFile)
 
         # Pass control flow to the engine object
-        game = opentribes.Engine(gamedata=arguments.gamedata, cache=arguments.cache, runtime=arguments.runtime, mods=arguments.mod)
+        game = opentribes.engine.Engine(gamedata=arguments.gamedata, cache=arguments.cache, runtime=arguments.runtime, mods=arguments.mod)
         game.start()
 
 if __name__ == "__main__":

@@ -9,6 +9,6 @@ def low_level_parse(payload):
     parser = lark.Lark(grammar)
     return parser.parse(payload)
 
-def low_level_parse_file(path, encoding="utf-8"):
+def low_level_parse_file(path):
     with open(path, "r") as handle:
-        return low_level_parse(payload=handle.read().decode(encoding))
+        return low_level_parse(payload=handle.read())
