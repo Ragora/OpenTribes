@@ -15,10 +15,25 @@ actual implementation on this repository will soon be generated using [sphinx](h
 
 ## Running
 
-When either running main.py directly or a built executable, it will expect a ```--gamedata``` parameter if the executable currently does not reside
-in the GameData directory of a working Tribes 2 installation.
+Running Tribes 2 with this engine will look a lot like shortcuts to run the original software, however, with some key differences:
+
+```bash
+python3 main.py --gamedata /path/to/your/GameData/dir --mod Classic
+```
+
+Or with a built distribution:
+
+```bash
+./tribes --gamedata /path/to/your/GameData/dir --mod Classic
+```
+
+Note the presence of the ```--gamedata``` parameter which is used to tell the code where the installation directory of your game is.
+
+Currently the only original command line flag that is supported is ```--mod``` but in the future the launcher will attempt to mimic the original command like arguments fully.
 
 ## Testing
+
+To execute unit tests (used to ensure the programming is working as intended), you run the setup.py script with ```test``` as the parameter:
 
 ```bash
 python3 setup.py test
