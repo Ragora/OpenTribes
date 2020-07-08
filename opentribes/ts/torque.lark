@@ -30,7 +30,7 @@ POSTFIX: "++" | "--"
 CUMULATIVE: "+=" | "-="
 
 // Torque Specific ops
-TORQUEOP: "@" | "SPC" | "TAB"
+TORQUEOP: "@" | "SPC" | "TAB" | "NL"
 
 PARENTHESESEXPLICIT: "("
 
@@ -45,6 +45,7 @@ PACKAGE: "package"
 FORLOOP: "for"
 ARRAY: "["
 SWITCHSTRING: "switch$"
+SWITCH: "switch"
 SWITCHCASE: "case"
 WHILELOOP: "while"
 DEFAULTCASE: "default"
@@ -78,6 +79,8 @@ FUNCTIONDECLARATION: NAME ("::" NAME)*
 globalcontext: COMMENT
                     | package
                     | datablock
+                    | switchstring
+                    | switch
                     | globalassignment
                     | localassignment
                     | localref ";"
@@ -87,17 +90,17 @@ globalcontext: COMMENT
                     | newobject
                     | functioncallouter
                     | newobjectouter
-                    | switchstring
                     | whileloop
                     | forloop
                     | if
                     | functiondeclaration
 
 packagecontext: COMMENT
+                    | switchstring
+                    | switch
                     | globalassignment
                     | localassignment
                     | functioncallouter
-                    | switchstring
                     | whileloop
                     | forloop
                     | if
@@ -115,6 +118,7 @@ codeblock: COMMENT
                 | functioncallouter
                 | newobjectouter
                 | switchstring
+                | switch
                 | whileloop
                 | forloop
                 | break
@@ -126,9 +130,9 @@ rvaluepostfixouter: rvaluepostfix ";"
 functioncallouter: functioncall ";"
 
 // Global & local assignments are allowed anywhere
-globalassignment: globalref ASSIGNMENT rvalue ";"
-localassignment: localref ASSIGNMENT rvalue ";"
-namedassignment: namedref ASSIGNMENT rvalue ";"
+globalassignment: globalref (ASSIGNMENT | CUMULATIVE) rvalue ";"
+localassignment: localref (ASSIGNMENT | CUMULATIVE) rvalue ";"
+namedassignment: namedref (ASSIGNMENT | CUMULATIVE) rvalue ";"
 
 // General purpose rule for handling local & globals
 // These may be referenced as arrays in any configuration like: %localArr[%i] = 50;
@@ -145,9 +149,8 @@ rvalueprefix: PREFIX (localref | globalref | functioncall)
 expression: rvalue (TORQUEOP | LOGICAL | ARITHMETIC | COMPARISON | BITWISE | ASSIGNMENT) rvalue
 
 datablock: DATABLOCK NAME "(" NAME? ")" (":" NAME)? COMMENT? "{" fieldassignment* "}" ";"
-//
-//
-rvalueinternal: namedref
+
+rvalueinternal: PREFIX? (namedref
                 | rvaluepostfix
                 | rvalueprefix
                 | BOOLEANTRUE
@@ -160,9 +163,9 @@ rvalueinternal: namedref
                 | localref
                 | globalref
                 | namedref
-                | expression
+                | expression) POSTFIX?
 
-rvalue: rvalueinternal | (PARENTHESESEXPLICIT rvalueinternal ")")
+rvalue: (PARENTHESESEXPLICIT rvalueinternal ")") | rvalueinternal
 
 //
 
@@ -210,8 +213,9 @@ forloopnobrace: FORLOOP "(" rvalue ";" rvalue ";" rvalue ")" COMMENT? codeblock
 //        ...
 //        break;
 ////////////////////////////////////////////////////////////////////////////////
-switchcases: ((SWITCHCASE rvalue) | DEFAULTCASE) ":" COMMENT? codeblock+
+switchcases: ((SWITCHCASE rvalue ("or" rvalue)*) | DEFAULTCASE) ":" COMMENT? codeblock+
 switchstring: SWITCHSTRING "(" rvalue ")" COMMENT? "{" switchcases+ "}"
+switch: SWITCH "(" rvalue ")" COMMENT? "{" switchcases+ "}"
 
 ////////////////////////////////////////////////////////////////////////////////
 // While Loop
