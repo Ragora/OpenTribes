@@ -29,7 +29,13 @@ POSTFIX: "++" | "--"
 // Cumulative ops
 CUMULATIVE: "+=" | "-="
 
+// Torque Specific ops
+TORQUEOP: "@" | "SPC" | "TAB"
+
 PARENTHESESEXPLICIT: "("
+
+BOOLEANTRUE: "true"
+BOOLEANFALSE: "false"
 
 // Keywords that should be differentiated
 RETURN: "return"
@@ -46,6 +52,7 @@ NEWOBJECT: "new"
 FIELDASSIGNMENT: NAME
 ELSE: "else"
 ELSEIF: "else if"
+DATABLOCK: "datablock"
 
 // Exclude dollar sign from the terminal intentionally
 GLOBALREF: NAME ("::" NAME)*
@@ -70,10 +77,12 @@ FUNCTIONDECLARATION: NAME ("::" NAME)*
 
 globalcontext: COMMENT
                     | package
-                    | globalcall ";"
-                    | localcall ";"
+                    | datablock
                     | globalassignment
                     | localassignment
+                    | localref ";"
+                    | globalref ";"
+                    | namedref ";"
                     | rvaluepostfixouter
                     | newobject
                     | functioncallouter
@@ -96,10 +105,12 @@ packagecontext: COMMENT
 
 // Like the global context but functions cannot be declared inside ie. for loops, other functions, etc
 codeblock: COMMENT
-                | globalcall ";"
-                | localcall ";"
                 | globalassignment
                 | localassignment
+                | namedassignment
+                | globalref ";"
+                | localref ";"
+                | namedref ";"
                 | rvaluepostfixouter
                 | functioncallouter
                 | newobjectouter
@@ -117,27 +128,30 @@ functioncallouter: functioncall ";"
 // Global & local assignments are allowed anywhere
 globalassignment: globalref ASSIGNMENT rvalue ";"
 localassignment: localref ASSIGNMENT rvalue ";"
+namedassignment: namedref ASSIGNMENT rvalue ";"
 
 // General purpose rule for handling local & globals
 // These may be referenced as arrays in any configuration like: %localArr[%i] = 50;
-localref: "%" LOCALREF (ARRAY rvalue ("," ARRAY)* "]")?
-globalref: "$" GLOBALREF (ARRAY rvalue ("," ARRAY)* "]")?
 
-localcall: localref FUNCTIONFIELDCALL "(" callparameters* ")"
-globalcall: globalref FUNCTIONFIELDCALL "(" callparameters* ")"
+array: ARRAY rvalue ("," ARRAY)* "]"
+localref: "%" LOCALREF array? (FIELDREF (functioncall | (NAME array?)))*
+globalref: "$" GLOBALREF array? (FIELDREF (functioncall | (NAME array?)))*
 
-namedref: NAMEDREF (FIELDREF NAME)*
+namedref: NAMEDREF (FIELDREF (functioncall | (NAME array?)))*
 
 rvaluepostfix: (localref | globalref) POSTFIX
 rvalueprefix: PREFIX (localref | globalref | functioncall)
 
-expression: rvalue (LOGICAL | ARITHMETIC | COMPARISON | BITWISE | ASSIGNMENT) rvalue
+expression: rvalue (TORQUEOP | LOGICAL | ARITHMETIC | COMPARISON | BITWISE | ASSIGNMENT) rvalue
 
+datablock: DATABLOCK NAME "(" NAME? ")" (":" NAME)? COMMENT? "{" fieldassignment* "}" ";"
+//
+//
 rvalueinternal: namedref
-                | localcall
-                | globalcall
                 | rvaluepostfix
                 | rvalueprefix
+                | BOOLEANTRUE
+                | BOOLEANFALSE
                 | NUMBER
                 | ESCAPED_STRING
                 | TAGGED_STRING
@@ -145,6 +159,7 @@ rvalueinternal: namedref
                 | functioncall
                 | localref
                 | globalref
+                | namedref
                 | expression
 
 rvalue: rvalueinternal | (PARENTHESESEXPLICIT rvalueinternal ")")
@@ -154,7 +169,7 @@ rvalue: rvalueinternal | (PARENTHESESEXPLICIT rvalueinternal ")")
 callparameterlist: [rvalue]
 callparameters: rvalue ("," rvalue)*
 
-functioncall: FUNCTIONCALL "(" callparameters* ")"
+functioncall: FUNCTIONCALL "(" callparameters* ")" (FIELDREF (functioncall | NAME))?
 
 functiondeclarationparameters: "%" LOCALREF ("," "%" LOCALREF)*
 functiondeclaration: "function" FUNCTIONDECLARATION "(" functiondeclarationparameters* ")" "{" codeblock* "}"
@@ -165,9 +180,9 @@ ifnobrace: IF "(" rvalue ")" codeblock elseif* else?
 ifbrace: IF "(" rvalue ")" COMMENT? "{" codeblock* "}" elseif* else?
 package: PACKAGE NAME COMMENT? "{" packagecontext* "};"
 break: BREAK ";"
-fieldassignment: FIELDASSIGNMENT (ARRAY rvalue ("," ARRAY)* "]")? "=" rvalue ";"
+fieldassignment: FIELDASSIGNMENT (ARRAY rvalue ("," ARRAY)* "]")? "=" rvalue ";" COMMENT?
 
-newobject: NEWOBJECT (NAME | ("(" NAME ")")) "(" NAME? ")" "{" (fieldassignment | newobject ";")* "}"
+newobject: NEWOBJECT (NAME | ("(" rvalue? ")")) "(" rvalue? ")" ("{" (fieldassignment | newobject ";")* "}")?
 
 ////////////////////////////////////////////////////////////////////////////////
 // For Loops

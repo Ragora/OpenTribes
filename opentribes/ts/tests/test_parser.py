@@ -29,6 +29,9 @@ class TestParser(unittest.TestCase):
         """
         test_files = (
             "Beginning.mis",
+            "bloodbioderm.cs",
+            "mining.cs",
+            "dataImport.cs",
             "serverRequestHandler.cs",
             "Slot1.cs"
         )
